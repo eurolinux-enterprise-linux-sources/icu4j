@@ -39,9 +39,6 @@
 %define without_eclipse 1
 %endif
 
-#%%define with_eclipse %{?_with_eclipse:1}%{!?_with_eclipse:0}
-#%%define without_eclipse %{!?_with_eclipse:1}%{?_with_eclipse:0}
-
 %define section free
 
 %define eclipse_base            %{_libdir}/eclipse
@@ -53,33 +50,31 @@
 %else
 %define eclipse_arch   %{_arch}
 %endif
-
+ 
 Name:           icu4j
-Version:        4.0.1
-Release:        3.3%{?dist}
+Version:        4.2.1
+Release:        5%{?dist}
 Epoch:          1
 Summary:        International Components for Unicode for Java
 License:        MIT and EPL 
 URL:            http://www-306.ibm.com/software/globalization/icu/index.jsp
 Group:          Development/Libraries
-Source0:        http://download.icu-project.org/files/icu4j/4.0.1/icu4j-4_0_1-src.jar
+Source0:        http://download.icu-project.org/files/icu4j/4.2.1/icu4j-4_2_1-src.jar
 Patch0:         %{name}-crosslink.patch
 # PDE Build is in a location the upstream build.xml doesn't check
 Patch4:         %{name}-pdebuildlocation.patch
 BuildRequires:  ant
-# FIXME:  is this necessary or is it just adding strings in the hrefs in
-# the docs?
-BuildRequires:  java-javadoc >= 1:1.6.0
+BuildRequires:  java-javadoc >= 1.5.0
 # This is to ensure we get OpenJDK and not GCJ
-BuildRequires:  java-devel >= 1:1.6.0
-BuildRequires:  jpackage-utils >= 0:1.5
+BuildRequires:  java-devel >= 1.5.0
+BuildRequires:  jpackage-utils >= 1.5
 Requires:       jpackage-utils
 # This is to ensure we get OpenJDK and not GCJ
-Requires:       java >= 1:1.6.0
+Requires:       java >= 1.5.0
 %if %{with_eclipse}
 BuildRequires:  eclipse-pde >= 0:3.2.1
+%global         debug_package %{nil}
 %endif
-%define         debug_package %{nil}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %description
@@ -101,7 +96,7 @@ Java text and internationalization API design.
 Summary:        Javadoc for %{name}
 Group:          Documentation
 Requires:       jpackage-utils
-Requires:       java-javadoc >= 1:1.6.0
+Requires:       java-javadoc >= 1.5.0
 
 %description javadoc
 Javadoc for %{name}.
@@ -109,7 +104,7 @@ Javadoc for %{name}.
 %if %{with_eclipse}
 %package eclipse
 Summary:        Eclipse plugin for %{name}
-Group:          Development/Tools
+Group:          Development/Libraries
 Requires:       jpackage-utils
 
 %description eclipse
@@ -132,14 +127,14 @@ sed --in-place "/javac1.3/d" build.xml
 sed --in-place "s:/usr/lib:%{_libdir}:g" build.xml
 
 %build
-%if %{without_eclipse}
-%ant -Dicu4j.javac.source=1.5 -Dicu4j.javac.target=1.5 -Dj2se.apidoc=%{_javadocdir}/java jar docs
+%if %{with_eclipse}
+  %ant -Dj2se.apidoc=%{_javadocdir}/java -Declipse.home=%{eclipse_base} \
+    -Declipse.basews=gtk -Declipse.baseos=linux \
+    -Declipse.basearch=%{eclipse_arch} \
+    -Dicu4j.eclipse.build.version.string=4.2.1.v20100412 \
+    jar docs eclipsePDEBuild
 %else
-%ant -Dj2se.apidoc=%{_javadocdir}/java -Declipse.home=%{eclipse_base} \
-  -Declipse.basews=gtk -Declipse.baseos=linux \
-  -Declipse.basearch=%{eclipse_arch} \
-  -Dicu4j.eclipse.build.version.string=4.0.1.v20090415 \
-  jar docs eclipsePDEBuild
+  %ant -Dbefore.java14=true -Dicu4j.javac.source=1.5 -Dicu4j.javac.target=1.5 -Dj2se.apidoc=%{_javadocdir}/java jar docs13
 %endif
 
 %install
@@ -166,17 +161,17 @@ unzip -qq -d %{buildroot}/%{eclipse_base} eclipseProjects/ICU4J.com.ibm.icu/com.
 %__rm -rf %{buildroot}
 
 %files
-%defattr(0644,root,root,0755)
+%defattr(-,root,root,-)
 %doc license.html readme.html APIChangeReport.html
 %{_javadir}/%{name}*.jar
 
 %files javadoc
-%defattr(0644,root,root,0755)
+%defattr(-,root,root,-)
 %doc %{_javadocdir}/*
 
 %if %{with_eclipse}
 %files eclipse
-%defattr(0644,root,root,0755)
+%defattr(-,root,root,-)
 %dir %{_libdir}/eclipse
 %dir %{_libdir}/eclipse/features
 %dir %{_libdir}/eclipse/plugins
@@ -186,6 +181,19 @@ unzip -qq -d %{buildroot}/%{eclipse_base} eclipseProjects/ICU4J.com.ibm.icu/com.
 %endif
 
 %changelog
+* Fri Jan 14 2011 Jeff Johnston <jjohnstn@redhat.com> 1:4.2.1-5
+- Remove maven bits.
+- Restore missing changelog entries.
+
+* Tue Dec 14 2010 Alexander Kurtakov <akurtako@redhat.com> 1:4.2.1-4
+- Bring back epoch.
+
+* Fri Dec 3 2010 Chris Aniszczyk <zx@redhat.com> 1:4.2.1-3
+- fix arch-related statements so we build on s390 variants.
+
+* Thu Jul 8 2010 Alexander Kurtakov <akurtako@redhat.com> 1:4.2.1-1
+- Update to 4.2.1.
+
 * Mon Jan 18 2010 Andrew Overholt <overholt@redhat.com> - 1:4.0.1-3.3
 - Fix Group tags
 - Remove macro in changelog
@@ -196,6 +204,9 @@ unzip -qq -d %{buildroot}/%{eclipse_base} eclipseProjects/ICU4J.com.ibm.icu/com.
 
 * Mon Nov 30 2009 Dennis Gregorovic <dgregor@redhat.com> - 1:4.0.1-3.1
 - Only build icu4j-eclipse on x86 and x86_64
+
+* Tue Sep 29 2009 Alexander Kurtakov <akurtako@redhat.com> 1:4.0.1-4
+- Simplify with_eclipse conditional.
 
 * Mon Aug 10 2009 Alexander Kurtakov <akurtako@redhat.com> 1:4.0.1-3
 - Update qualifier to the Eclipse 3.5.0 release.
